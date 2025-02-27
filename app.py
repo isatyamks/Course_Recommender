@@ -45,12 +45,12 @@ def login_required(f):
 
 def scrap(linkedin):
     print(linkedin)
-    api_key = "67c03d3d33734d79746429d7"
+    api_key = "67c0b380bd375d7bb8171f90"
     url = "https://api.scrapingdog.com/linkedin"
     params = {
         "api_key": api_key,
         "type": "profile",
-        "linkId":f"{linkedin}",
+        "linkId": linkedin,
         "private": "false"
     }
     
@@ -59,7 +59,8 @@ def scrap(linkedin):
         data = response.json()
     else:
         print(f"Request failed with status code: {response.status_code}")
-    return response
+        data = {}
+    return data
 
 
 def get_recommendations(linkedin, github):
