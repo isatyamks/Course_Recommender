@@ -1,43 +1,56 @@
-// Wait for the DOM to be fully loaded
+// Common script for login and signup pages
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Form validation for signup
-    const signupForm = document.querySelector('form[action="/signup"]');
-    if (signupForm) {
-        signupForm.addEventListener('submit', function(event) {
-            const linkedin = document.getElementById('linkedin').value.trim();
-            const github = document.getElementById('github').value.trim();
+    // Form validation
+    const forms = document.querySelectorAll('form');
+    
+    forms.forEach(form => {
+        form.addEventListener('submit', function(event) {
+            const inputs = form.querySelectorAll('input[required]');
+            let isValid = true;
             
-            if (!linkedin || !github) {
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    isValid = false;
+                    input.classList.add('error');
+                    
+                    // Create error message if it doesn't exist
+                    let errorMsg = input.nextElementSibling;
+                    if (!errorMsg || !errorMsg.classList.contains('error-message')) {
+                        errorMsg = document.createElement('p');
+                        errorMsg.classList.add('error-message');
+                        errorMsg.textContent = 'This field is required';
+                        input.parentNode.insertBefore(errorMsg, input.nextSibling);
+                    }
+                } else {
+                    input.classList.remove('error');
+                    
+                    // Remove error message if it exists
+                    const errorMsg = input.nextElementSibling;
+                    if (errorMsg && errorMsg.classList.contains('error-message')) {
+                        errorMsg.remove();
+                    }
+                }
+            });
+            
+            if (!isValid) {
                 event.preventDefault();
-                alert('LinkedIn and GitHub usernames are required!');
             }
         });
-    }
+    });
     
-    // Animation for course cards
-    const courseCards = document.querySelectorAll('.course-card');
-    if (courseCards.length > 0) {
-        // Add a slight delay to each card for a staggered animation effect
-        courseCards.forEach((card, index) => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(20px)';
-            card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    // Add input event listeners to clear errors on typing
+    const inputs = document.querySelectorAll('input');
+    
+    inputs.forEach(input => {
+        input.addEventListener('input', function() {
+            input.classList.remove('error');
             
-            setTimeout(() => {
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, 100 * index);
+            // Remove error message if it exists
+            const errorMsg = input.nextElementSibling;
+            if (errorMsg && errorMsg.classList.contains('error-message')) {
+                errorMsg.remove();
+            }
         });
-    }
-    
-    // Add active class to current nav item
-    const currentPath = window.location.pathname;
-    const navLinks = document.querySelectorAll('nav ul li a');
-    
-    navLinks.forEach(link => {
-        const linkPath = link.getAttribute('href');
-        if (linkPath === currentPath) {
-            link.classList.add('active');
-        }
     });
 });

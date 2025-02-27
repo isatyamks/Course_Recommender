@@ -4,22 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up - Course Recommender</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
     <div class="container">
         <div class="form-container">
             <h1>Sign Up</h1>
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    <div class="flash-messages">
-                        {% for message in messages %}
-                            <p>{{ message }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
-            <form action="{{ url_for('signup') }}" method="post">
+            <% if (messages && messages.length > 0) { %>
+                <div class="flash-messages">
+                    <% messages.forEach(function(message) { %>
+                        <p><%= message %></p>
+                    <% }); %>
+                </div>
+            <% } %>
+            <form action="/signup" method="post">
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input type="text" id="username" name="username" required>
@@ -38,9 +36,9 @@
                 </div>
                 <button type="submit" class="btn">Sign Up</button>
             </form>
-            <p class="form-link">Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+            <p class="form-link">Already have an account? <a href="/login">Login</a></p>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="/js/script.js"></script>
 </body>
 </html>

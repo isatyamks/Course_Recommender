@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Course Recommender</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
     <div class="dashboard-container">
         <header>
-            <h1>Welcome, {{ username }}!</h1>
-            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            <h1>Welcome, <%= username %>!</h1>
+            <a href="/logout" class="logout-btn">Logout</a>
         </header>
         
         <main>
@@ -19,18 +19,18 @@
                 <p class="recommendation-intro">Based on your LinkedIn and GitHub profiles, we recommend these courses:</p>
                 
                 <div class="courses-grid">
-                    {% for course in recommendations %}
+                    <% recommendations.forEach(function(course) { %>
                     <div class="course-card">
-                        <div class="course-level {{ course.level.lower() }}">{{ course.level }}</div>
-                        <h3>{{ course.title }}</h3>
-                        <p>{{ course.description }}</p>
+                        <div class="course-level <%= course.level.toLowerCase() %>"><%= course.level %></div>
+                        <h3><%= course.title %></h3>
+                        <p><%= course.description %></p>
                         <button class="enroll-btn">Enroll Now</button>
                     </div>
-                    {% endfor %}
+                    <% }); %>
                 </div>
             </section>
         </main>
     </div>
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="/js/dashboard.js"></script>
 </body>
 </html>
