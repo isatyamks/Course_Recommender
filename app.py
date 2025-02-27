@@ -61,7 +61,7 @@ def login_required(f):
 
 def scrap(linkedin):
     print(linkedin)
-    api_key = "67c0b380bd375d7bb8171f90"
+    api_key = "67c0bc870d3f4be461184ef7"
     url = "https://api.scrapingdog.com/linkedin"
     params = {
         "api_key": api_key,
@@ -78,7 +78,6 @@ def scrap(linkedin):
         data = {}
     return data
 
-data = scrap(linkedin)
 
 
 
@@ -140,8 +139,10 @@ def extract_text(data):
 
 def get_recommendations(linkedin, github):
     data = scrap(linkedin)
-    # print(data)
-    recommendations =extract_text(data)
+    print(f'\n\n\n\n{data}\n\n')
+    data_str = json.dumps(data)
+    recommendations =extract_text(data_str)
+    print(recommendations)
     return recommendations
 
 @app.route('/')

@@ -21,7 +21,6 @@
                 <div class="courses-grid">
                     {% for course in recommendations %}
                     <div class="course-card">
-                        <div class="course-level {{ course.level.lower() }}">{{ course.level }}</div>
                         <h3>{{ course.title }}</h3>
                         <p>{{ course.description }}</p>
                         <button class="enroll-btn">Enroll Now</button>
