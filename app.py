@@ -1,15 +1,31 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash,jsonify
 import os
 import csv
 import random
 from functools import wraps
+from groq import Groq
 import requests
+from dotenv import load_dotenv
+import os
+
+import re
+import json
+
+
+
+
+
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 users = {}
 USER_DATA_FILE = 'users.csv'
+
+load_dotenv()
+api_key = os.getenv('API_KEY')
+client = Groq(api_key=api_key)
+
 
 if not os.path.exists(USER_DATA_FILE):
     with open(USER_DATA_FILE, 'w', newline='') as file:
@@ -62,39 +78,70 @@ def scrap(linkedin):
         data = {}
     return data
 
+data = scrap(linkedin)
+
+
+
+
+
+
+def extract_text(data):
+    try:
+        prompt = f"""
+        Given the following LinkedIn profile data:
+        {data}
+        
+        Identify the user's skills, interests, and current expertise level. Based on this information, recommend a list of courses they should take next to enhance their career. 
+        
+        The output should be a Python list of dictionaries, where each dictionary contains:
+        - "title": The course name
+        - "description": A brief summary of the course
+        - "level": One of "Beginner", "Intermediate", or "Advanced"
+        
+        Example output:
+        [
+            {"title": "Machine Learning Fundamentals", "description": "Learn the basics of ML algorithms", "level": "Beginner"},
+            {"title": "Advanced Python Programming", "description": "Master Python for data science", "level": "Intermediate"}
+        ]
+        """
+
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are an AI that extracts structured information from resumes and recommends career-enhancing courses."},
+                {"role": "user", "content": prompt}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.3,
+            top_p=1,
+            stop=None,
+            stream=False,
+        )
+
+        extracted_data = chat_completion.choices[0].message.content.strip()
+        json_match = re.search(r"\[.*\]", extracted_data, re.DOTALL)
+        if not json_match:
+            return {"error": "Invalid format received from API"}
+
+        json_str = json_match.group(0)  
+
+        try:
+            parsed_data = json.loads(json_str)  
+            return parsed_data
+        except json.JSONDecodeError:
+            return {"error": "Received malformed data from API"}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+
+
+
 
 def get_recommendations(linkedin, github):
     data = scrap(linkedin)
-    print(data)
-    courses = [
-        {"title": "Machine Learning Fundamentals", "description": "Learn the basics of ML algorithms", "level": "Beginner"},
-        {"title": "Advanced Python Programming", "description": "Master Python for data science", "level": "Intermediate"},
-        {"title": "Web Development with Flask", "description": "Build web applications with Flask", "level": "Beginner"},
-        {"title": "Data Structures and Algorithms", "description": "Essential CS concepts for coding interviews", "level": "Intermediate"},
-        {"title": "Deep Learning with TensorFlow", "description": "Build neural networks with TensorFlow", "level": "Advanced"},
-        {"title": "Full Stack JavaScript", "description": "Master Node.js, React, and MongoDB", "level": "Intermediate"},
-        {"title": "DevOps and CI/CD", "description": "Learn modern deployment workflows", "level": "Advanced"},
-        {"title": "Cloud Computing with AWS", "description": "Deploy applications on AWS", "level": "Intermediate"}
-    ]
-    
-    recommendations = []
-    
-    if 'dev' in github.lower() or 'web' in github.lower():
-        recommendations.append(courses[2])  
-        recommendations.append(courses[5])  
-    
-    if 'data' in linkedin.lower() or 'science' in linkedin.lower():
-        recommendations.append(courses[0])  
-        recommendations.append(courses[1])  
-        recommendations.append(courses[4])      
-    if 'engineer' in linkedin.lower() or 'software' in github.lower():
-        recommendations.append(courses[3])  
-        recommendations.append(courses[6])  
-    while len(recommendations) < 4:
-        random_course = random.choice(courses)
-        if random_course not in recommendations:
-            recommendations.append(random_course)
-    
+    # print(data)
+    recommendations =extract_text(data)
     return recommendations
 
 @app.route('/')
