@@ -1,0 +1,52 @@
+{
+  "primary_skills": [
+    "Android Development",
+    "Mobile App Development",
+    "Kotlin",
+    "Jetpack Compose",
+    "Firebase",
+    "C/C++",
+    "Python",
+    "Git",
+    "Open Source Contribution",
+    "Software Development",
+    "Problem Solving",
+    "Data Structures and Algorithms"
+  ],
+  "domain_expertise": [
+    "Mobile Application Development",
+    "Software Engineering",
+    "Open Source Contribution",
+    "Computer Science",
+    "Android Engineering"
+  ]
+}
+
+
+
+
+
+
+{
+    "primary_skills": {
+      "Android Development": "Intern-level experience with practical application in open-source projects.",
+      "Mobile App Development": "Developing foundational skills through internships and personal projects.",
+      "Kotlin": "Proficient in Kotlin for Android app development, evidenced by project contributions.",
+      "Jetpack Compose": "Utilizing Jetpack Compose for UI development in Android projects, showing practical exposure.",
+      "Firebase": "Familiar with Firebase for backend services, mentioned in headline and likely used in projects.",
+      "C/C++": "Basic knowledge indicated, likely foundational from academic coursework.",
+      "Python": "Proficient, demonstrated by CS50P certification and practical application.",
+      "Git": "Experienced with Git workflows through open-source contributions and collaborative projects.",
+      "Open Source Contribution": "Active contributor to open-source projects like GSSoC and Hacktoberfest.",
+      "Software Development": "Developing core software development skills through academic and practical experience.",
+      "Problem Solving": "Demonstrated through coding challenges and open-source contributions.",
+      "Data Structures and Algorithms": "Actively practicing DSA, evidenced by LeetCode and related activity engagement."
+    },
+    "domain_expertise": {
+      "Mobile Application Development": "Early-stage expertise with a focus on Android development.",
+      "Software Engineering": "Building foundational knowledge through academic and practical experience.",
+      "Open Source Contribution": "Actively participating in and learning from the open-source community.",
+      "Computer Science": "Solid academic foundation with practical application through projects and certifications.",
+      "Android Engineering": "Developing practical skills in Android engineering through internships and contributions."
+    }
+  }
