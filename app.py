@@ -50,7 +50,7 @@ def scrap(linkedin):
     params = {
         "api_key": api_key,
         "type": "profile",
-        "linkId":linkedin,
+        "linkId":f"{linkedin}",
         "private": "false"
     }
     
