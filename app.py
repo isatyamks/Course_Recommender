@@ -44,7 +44,7 @@ def login_required(f):
     return decorated_function
 
 def scrap(linkedin):
-    # print(linkedin)
+    print(linkedin)
     api_key = "67c03d3d33734d79746429d7"
     url = "https://api.scrapingdog.com/linkedin"
     params = {
