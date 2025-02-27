@@ -13,7 +13,6 @@ import re
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-
 def clean_text(text):
     text = re.sub(r'http\S+|www\S+', '', text)
     text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
@@ -24,22 +23,13 @@ def clean_text(text):
     
     return filtered_text
 
-def process_json(input_file, output_file):
-    with open(input_file, 'r', encoding='utf-8') as f:
-        data = json.load(f)
+def process_json(data):
     for entry in data:
         if 'text' in entry:
             entry['text'] = clean_text(entry['text'])
         entry.pop('people_also_viewed', None)
         entry.pop('similar_profiles', None)
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=4)
-
-input_file = 'data\\isatyamks.json'  
-output_file = 'data\\isatyamks.json'
-process_json(input_file, output_file)
-
-
+    return data
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -50,7 +40,7 @@ USER_DATA_FILE = 'users.csv'
 load_dotenv()
 api_key = os.getenv('API_KEY')
 client = Groq(api_key=api_key)
-
+scrap_api = os.getenv('SC_API_KEY')
 # Ensure the CSV file exists
 if not os.path.exists(USER_DATA_FILE):
     with open(USER_DATA_FILE, 'w', newline='') as file:
@@ -87,10 +77,32 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# Scrape LinkedIn profile
-def scrap(linkedin):
-    print(f"Scraping LinkedIn profile: {linkedin}")
-    api_key = "67c0c8e1f6aabc6c38a5d2e0"
+# # Scrape LinkedIn profile
+# def scrap(linkedin):
+#     api_key = "67c0d2bd51ef27c8fe654941"
+#     url = "https://api.scrapingdog.com/linkedin"
+#     params = {
+#         "api_key": api_key,
+#         "type": "profile",
+#         "linkId": linkedin,
+#         "private": "false"
+#     }
+
+#     response = requests.get(url, params=params)
+#     if response.status_code == 200:
+#         try:
+#             data = response.json()
+#             data_clean = process_json(data)
+#         except json.JSONDecodeError:
+#             print("Failed to decode JSON response")
+#             return None, None
+#     else:
+#         print(f"Request failed with status code: {response.status_code}")
+#         return None, None
+
+# Extract text and generate recommendations
+def extract_text(linkedin):
+    api_key = scrap_api
     url = "https://api.scrapingdog.com/linkedin"
     params = {
         "api_key": api_key,
@@ -101,85 +113,66 @@ def scrap(linkedin):
 
     response = requests.get(url, params=params)
     if response.status_code == 200:
-        data = response.json()
-        username = linkedin.split('/')[-1]
-        folder_path = os.path.join('data')
-        os.makedirs(folder_path, exist_ok=True)
-        file_path = os.path.join(folder_path, f'{username}.json')
-
-        with open(file_path, 'w') as f:
-            json.dump(data, f)
-            input_file = f'data\\{username}.json'  
-            output_file = f'data\\{username}.json'
-            process_json(input_file, output_file)
-
-        return username, file_path
+        try:
+            data = response.json()
+            data_clean = process_json(data)
+            print(data_clean)
+        except json.JSONDecodeError:
+            print("Failed to decode JSON response")
+            return None, None
     else:
         print(f"Request failed with status code: {response.status_code}")
         return None, None
 
-# Extract text and generate recommendations
-def extract_text(username, file_path):
+    prompt = f"""
+    Given the following LinkedIn profile data:
+    {data_clean}
+
+    Identify the user's skills, interests, and current expertise level. Based on this information, recommend a list of courses they should take next to enhance their career.
+
+    The output should be a Python list of dictionaries, where each dictionary contains:
+    - "title": The course name
+    - "description": A brief summary of the course
+    - "level": One of "Beginner", "Intermediate", or "Advanced"
+
+    Example output:
+    [
+        {{"title": "Machine Learning Fundamentals", "description": "Learn the basics of ML algorithms", "level": "Beginner"}},
+        {{"title": "Advanced Python Programming", "description": "Master Python for data science", "level": "Intermediate"}}
+    ]
+    """
+
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {"role": "system", "content": "You are an AI that extracts structured information from resumes and recommends career-enhancing courses."},
+            {"role": "user", "content": prompt}
+        ],
+        model="llama-3.3-70b-versatile",
+        temperature=0.3,
+        top_p=1,
+        stop=None,
+        stream=False,
+    )
+
+    extracted_data = chat_completion.choices[0].message.content.strip()
+    json_match = re.search(r"\[.*\]", extracted_data, re.DOTALL)
+    if not json_match:
+        return {"error": "Invalid format received from API"}
+
+    json_str = json_match.group(0)
+
     try:
-        if not file_path or not os.path.exists(file_path):
-            return {"error": "Profile data not found"}
-
-        with open(file_path, 'r') as f:
-            data = f.read()
-        print(data)
-        prompt = f"""
-        Given the following LinkedIn profile data:
-        {data}
-
-        Identify the user's skills, interests, and current expertise level. Based on this information, recommend a list of courses they should take next to enhance their career.
-
-        The output should be a Python list of dictionaries, where each dictionary contains:
-        - "title": The course name
-        - "description": A brief summary of the course
-        - "level": One of "Beginner", "Intermediate", or "Advanced"
-
-        Example output:
-        [
-            {{"title": "Machine Learning Fundamentals", "description": "Learn the basics of ML algorithms", "level": "Beginner"}},
-            {{"title": "Advanced Python Programming", "description": "Master Python for data science", "level": "Intermediate"}}
-        ]
-        """
-
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": "You are an AI that extracts structured information from resumes and recommends career-enhancing courses."},
-                {"role": "user", "content": prompt}
-            ],
-            model="llama-3.3-70b-versatile",
-                temperature=0.3,
-                top_p=1,
-                stop=None,
-                stream=False,
-        )
-
-        extracted_data = chat_completion.choices[0].message['content'].strip()
-        json_match = re.search(r"\[.*\]", extracted_data, re.DOTALL)
-        if not json_match:
-            return {"error": "Invalid format received from API"}
-
-        json_str = json_match.group(0)  
-
-        try:
-            parsed_data = json.loads(json_str)  
-            return parsed_data
-        except json.JSONDecodeError:
-            return {"error": "Received malformed data from API"}
+        parsed_data = json.loads(json_str)
+        return parsed_data
+    except json.JSONDecodeError:
+        return {"error": "Received malformed data from API"}
 
     except Exception as e:
         return {"error": str(e)}
 
 # Generate recommendations
-def get_recommendations(linkedin, github):
-    username, file_path = scrap(linkedin)
-    if not username or not file_path:
-        return {"error": "Failed to scrape LinkedIn profile"}
-    
-    recommendations = extract_text(username, file_path)
+def get_recommendations(linkedin):
+    recommendations = extract_text(linkedin)
     return recommendations
 
 @app.route('/')
@@ -236,7 +229,7 @@ def dashboard():
     if not user_data['linkedin']:
         recommendations = {"error": "No LinkedIn profile provided"}
     else:
-        recommendations = get_recommendations(user_data['linkedin'], user_data['github'])
+        recommendations = get_recommendations(user_data['linkedin'])
 
     return render_template('dashboard.html', username=username, recommendations=recommendations)
 
