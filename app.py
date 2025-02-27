@@ -1,131 +1,158 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, session
-import requests
-import json
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import os
-from datetime import datetime
+import csv
+import random
+from functools import wraps
+import requests
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key"
+app.secret_key = os.urandom(24)
 
 users = {}
+USER_DATA_FILE = 'users.csv'
 
-def get_course_recommendations(linkedin_username, github_username):
-    skills = []
-    if linkedin_username == "data_scientist":
-        skills = ["Python", "Statistics"]
-    elif linkedin_username == "web_dev":
-        skills = ["HTML", "CSS"]
-    else:
-        skills = ["Communication"]
-        
-    if github_username == "ml_expert":
-        skills.append("Machine Learning")
-    elif github_username == "frontend_dev":
-        skills.append("JavaScript")
+if not os.path.exists(USER_DATA_FILE):
+    with open(USER_DATA_FILE, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['username', 'password', 'linkedin', 'github'])
+
+def load_users():
+    global users
+    if os.path.exists(USER_DATA_FILE):
+        with open(USER_DATA_FILE, 'r', newline='') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                users[row['username']] = {
+                    'password': row['password'],
+                    'linkedin': row['linkedin'],
+                    'github': row['github']
+                }
+
+def save_user(username, password, linkedin, github):
+    with open(USER_DATA_FILE, 'a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([username, password, linkedin, github])
+
+load_users()
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def scrap(linkedin):
+    # print(linkedin)
+    api_key = "67c03d3d33734d79746429d7"
+    url = "https://api.scrapingdog.com/linkedin"
+    params = {
+        "api_key": api_key,
+        "type": "profile",
+        "linkId":linkedin,
+        "private": "false"
+    }
     
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+    else:
+        print(f"Request failed with status code: {response.status_code}")
+    return response
+
+
+def get_recommendations(linkedin, github):
+    data = scrap(linkedin)
+    print(data)
     courses = [
-        {
-            "title": "Python for Data Science",
-            "provider": "Coursera",
-            "url": "https://www.coursera.org/learn/python-for-data-science",
-            "image": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-            "description": "Learn Python programming basics and data analysis techniques."
-        },
-        {
-            "title": "Machine Learning Fundamentals",
-            "provider": "edX",
-            "url": "https://www.edx.org/learn/machine-learning",
-            "image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-            "description": "Introduction to machine learning algorithms and applications."
-        },
-        {
-            "title": "Web Development Bootcamp",
-            "provider": "Udemy",
-            "url": "https://www.udemy.com/course/the-web-developer-bootcamp/",
-            "image": "https://images.unsplash.com/photo-1547658719-da2b51169166?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-            "description": "Complete web development course covering HTML, CSS, JavaScript, and more."
-        },
-        {
-            "title": "Data Visualization with D3.js",
-            "provider": "Pluralsight",
-            "url": "https://www.pluralsight.com/courses/d3js-data-visualization-fundamentals",
-            "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-            "description": "Learn to create interactive data visualizations with D3.js."
-        },
-        {
-            "title": "Deep Learning Specialization",
-            "provider": "Coursera",
-            "url": "https://www.coursera.org/specializations/deep-learning",
-            "image": "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-            "description": "Master deep learning techniques and neural networks."
-        }
+        {"title": "Machine Learning Fundamentals", "description": "Learn the basics of ML algorithms", "level": "Beginner"},
+        {"title": "Advanced Python Programming", "description": "Master Python for data science", "level": "Intermediate"},
+        {"title": "Web Development with Flask", "description": "Build web applications with Flask", "level": "Beginner"},
+        {"title": "Data Structures and Algorithms", "description": "Essential CS concepts for coding interviews", "level": "Intermediate"},
+        {"title": "Deep Learning with TensorFlow", "description": "Build neural networks with TensorFlow", "level": "Advanced"},
+        {"title": "Full Stack JavaScript", "description": "Master Node.js, React, and MongoDB", "level": "Intermediate"},
+        {"title": "DevOps and CI/CD", "description": "Learn modern deployment workflows", "level": "Advanced"},
+        {"title": "Cloud Computing with AWS", "description": "Deploy applications on AWS", "level": "Intermediate"}
     ]
     
-    return courses
+    recommendations = []
+    
+    if 'dev' in github.lower() or 'web' in github.lower():
+        recommendations.append(courses[2])  
+        recommendations.append(courses[5])  
+    
+    if 'data' in linkedin.lower() or 'science' in linkedin.lower():
+        recommendations.append(courses[0])  
+        recommendations.append(courses[1])  
+        recommendations.append(courses[4])      
+    if 'engineer' in linkedin.lower() or 'software' in github.lower():
+        recommendations.append(courses[3])  
+        recommendations.append(courses[6])  
+    while len(recommendations) < 4:
+        random_course = random.choice(courses)
+        if random_course not in recommendations:
+            recommendations.append(random_course)
+    
+    return recommendations
 
-@app.route("/")
-def home():
-    if "user" in session:
-        return redirect(url_for("dashboard"))
-    return render_template("login.html")
+@app.route('/')
+def index():
+    if 'username' in session:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
 
-@app.route("/signup", methods=["GET", "POST"])
+@app.route('/signup', methods=['GET', 'POST'])
 def signup():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        linkedin = request.form["linkedin"]
-        github = request.form["github"]
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        linkedin = request.form['linkedin']
+        github = request.form['github']
         
         if username in users:
-            return render_template("signup.html", error="Username already exists")
+            flash('Username already exists!')
+            return render_template('signup.html')
         
         users[username] = {
-            "password": password,
-            "linkedin": linkedin,
-            "github": github,
-            "joined": datetime.now().strftime("%Y-%m-%d")
+            'password': password,
+            'linkedin': linkedin,
+            'github': github
         }
         
-        session["user"] = username
-        return redirect(url_for("dashboard"))
-    
-    return render_template("signup.html")
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
+        save_user(username, password, linkedin, github)
         
-        if username in users and users[username]["password"] == password:
-            session["user"] = username
-            return redirect(url_for("dashboard"))
+        flash('Account created successfully! Please log in.')
+        return redirect(url_for('login'))
+    
+    return render_template('signup.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        if username in users and users[username]['password'] == password:
+            session['username'] = username
+            return redirect(url_for('dashboard'))
         else:
-            return render_template("login.html", error="Invalid credentials")
+            flash('Invalid username or password!')
     
-    return render_template("login.html")
+    return render_template('login.html')
 
-@app.route("/dashboard")
+@app.route('/dashboard')
+@login_required
 def dashboard():
-    if "user" not in session:
-        return redirect(url_for("home"))
-    
-    username = session["user"]
+    username = session['username']
     user_data = users[username]
-    
-    courses = get_course_recommendations(user_data["linkedin"], user_data["github"])
-    
-    return render_template("dashboard.html", 
-                          user=username, 
-                          linkedin=user_data["linkedin"],
-                          github=user_data["github"],
-                          courses=courses)
+    recommendations = get_recommendations(user_data['linkedin'], user_data['github'])
+    return render_template('dashboard.html', username=username, recommendations=recommendations)
 
-@app.route("/logout")
+@app.route('/logout')
 def logout():
-    session.pop("user", None)
-    return redirect(url_for("home"))
+    session.pop('username', None)
+    return redirect(url_for('login'))
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
