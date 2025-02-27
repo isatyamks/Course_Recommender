@@ -5,16 +5,11 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key"  # Change this in production
+app.secret_key = "your_secret_key"
 
-# Mock user database - in a real app, use a proper database
 users = {}
 
-# Mock course recommendation function (simulating ML model)
 def get_course_recommendations(linkedin_username, github_username):
-    # In a real app, this would call your ML model and external APIs
-    
-    # Mock data based on profiles
     skills = []
     if linkedin_username == "data_scientist":
         skills = ["Python", "Statistics"]
@@ -23,13 +18,11 @@ def get_course_recommendations(linkedin_username, github_username):
     else:
         skills = ["Communication"]
         
-    # Add skills based on GitHub
     if github_username == "ml_expert":
         skills.append("Machine Learning")
     elif github_username == "frontend_dev":
         skills.append("JavaScript")
     
-    # Mock course recommendations
     courses = [
         {
             "title": "Python for Data Science",
@@ -68,7 +61,6 @@ def get_course_recommendations(linkedin_username, github_username):
         }
     ]
     
-    # In a real app, you would filter courses based on skills and profile analysis
     return courses
 
 @app.route("/")
@@ -122,7 +114,6 @@ def dashboard():
     username = session["user"]
     user_data = users[username]
     
-    # Get course recommendations
     courses = get_course_recommendations(user_data["linkedin"], user_data["github"])
     
     return render_template("dashboard.html", 
