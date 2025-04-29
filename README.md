@@ -80,6 +80,5 @@ project/
 ## License
 This project is licensed under the MIT License.
 
-## Contact
-For any queries or contributions, contact isatyamks@gmail.com or visit https://github.com/isatyamks.
+
 
